@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { getRepoContext } from "./tools/getRepoContext.js";
+import { getRepoContext } from "../tools/getRepoContext.js";
 
 export function createServer() {
   const server = new McpServer({
@@ -23,7 +23,10 @@ export function createServer() {
       },
     },
     async ({ owner, repo, branch }) => {
-      const result = await getRepoContext({ owner, repo, branch });
+      const result = await getRepoContext({
+        owner,
+        repo,
+        branch: branch ?? "main" });
 
       if (!result.success) {
         return {
