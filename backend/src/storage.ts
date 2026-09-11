@@ -96,3 +96,21 @@ export async function listReposForUser(pool: Pool, userId: string) {
   );
   return result.rows;
 }
+
+/** Latest context for one of THIS user's repos, by name — used by the MCP tool (authenticated, so scoped to their own repos). */
+export async function getLatestContextByUserAndRepoName(
+  pool: Pool,
+  userId: string,
+  repoName: string
+): Promise<string | null> {
+  const result = await pool.query(
+    `SELECT c.markdown
+     FROM contexts c
+     JOIN repos r ON r.id = c.repo_id
+     WHERE r.user_id = $1 AND r.name = $2
+     ORDER BY c.created_at DESC
+     LIMIT 1`,
+    [userId, repoName]
+  );
+  return result.rows[0]?.markdown ?? null;
+}

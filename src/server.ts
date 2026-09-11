@@ -13,37 +13,25 @@ export function createServer() {
     {
       title: "Get Repo Context",
       description:
-        "Scans a public GitHub repository and returns a structured markdown summary " +
-        "(project purpose, tech stack, folder structure) so an LLM can quickly " +
-        "understand the codebase before reading individual files.",
+        "Returns a structured markdown map of a repo you've previously pushed with " +
+        "`repolens push` — includes entry points, file relationships, and call chains " +
+        "so an LLM can understand the codebase before reading individual files.",
       inputSchema: {
-        owner: z.string().describe("GitHub repo owner/organization, e.g. 'Aashwalayan'"),
-        repo: z.string().describe("Repo name, e.g. 'RepoLensMCP'"),
-        branch: z.string().optional().describe("Branch to scan, defaults to 'main'"),
+        repoName: z.string().describe("The repo name as it appears in your pushed repos (matches package.json's 'name' field, or the folder name)"),
       },
     },
-    async ({ owner, repo, branch }) => {
-      const result = await getRepoContext({ owner, repo, branch });
+    async ({ repoName }) => {
+      const result = await getRepoContext({ repoName });
 
       if (!result.success) {
         return {
-          content: [
-            {
-              type: "text",
-              text: `Error: ${result.error}`,
-            },
-          ],
+          content: [{ type: "text", text: `Error: ${result.error}` }],
           isError: true,
         };
       }
 
       return {
-        content: [
-          {
-            type: "text",
-            text: result.markdown ?? "",
-          },
-        ],
+        content: [{ type: "text", text: result.markdown ?? "" }],
       };
     }
   );

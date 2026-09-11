@@ -1,71 +1,45 @@
-import { fetchRepoToTemp, cleanupTemp } from "../scanner/cloneOrFetch.js";
-import { countLines } from "../scanner/lineCounter.js";
-import { analyzeFolderStructure } from "../scanner/folderAnalyzer.js";
-import { parsePackageJson } from "../scanner/packageParser.js";
-import { extractReadmeSummary } from "../scanner/readmeExtractor.js";
-import { buildContextMarkdown } from "../generator/buildContextMd.js";
-import { checkThreshold } from "../limits/threshold.js";
-
 export interface GetRepoContextInput {
-  owner: string;
-  repo: string;
-  branch?: string;
-  githubToken?: string; // for private repos, paid tier
-  isPaidUser?: boolean;
+  repoName: string;
 }
 
 export interface GetRepoContextResult {
   success: boolean;
   markdown?: string;
   error?: string;
-  totalLines?: number;
 }
 
-/**
- * The core MCP tool logic. Fetches the repo, checks the free-tier threshold
- * BEFORE doing expensive analysis, then generates the context markdown.
- */
-export async function getRepoContext(
-  input: GetRepoContextInput
-): Promise<GetRepoContextResult> {
-  const { owner, repo, branch = "main", githubToken, isPaidUser = false } = input;
+const API_URL = process.env.REPOLENS_API_URL || 'https://api.yourservice.com'; // swap once deployed
+const API_KEY = process.env.REPOLENS_KEY;
 
-  let tempDir: string | null = null;
+/**
+ * The MCP tool's core logic. Fetches the ALREADY-GENERATED repo map from the
+ * backend (pushed there earlier by `repolens push`/`watch`) — this tool does
+ * NOT clone or analyze anything itself anymore.
+ */
+export async function getRepoContext(input: GetRepoContextInput): Promise<GetRepoContextResult> {
+  if (!API_KEY) {
+    return {
+      success: false,
+      error: 'REPOLENS_KEY is not set. Configure it in your MCP server environment.',
+    };
+  }
 
   try {
-    tempDir = await fetchRepoToTemp(owner, repo, branch, githubToken);
-
-    // Cheap check first — bail before running the full analysis if over the limit
-    const lineStats = countLines(tempDir);
-    const threshold = checkThreshold(lineStats.totalLines, isPaidUser);
-
-    if (!threshold.allowed) {
-      return {
-        success: false,
-        error: threshold.message,
-        totalLines: threshold.totalLines,
-      };
-    }
-
-    const folderTree = analyzeFolderStructure(tempDir);
-    const packageInfo = parsePackageJson(tempDir);
-    const readmeSummary = extractReadmeSummary(tempDir);
-
-    const markdown = buildContextMarkdown({
-      repoName: `${owner}/${repo}`,
-      readmeSummary,
-      packageInfo,
-      folderTree,
-      lineStats,
+    const res = await fetch(`${API_URL}/api/context/${encodeURIComponent(input.repoName)}`, {
+      headers: { Authorization: `Bearer ${API_KEY}` },
     });
 
-    return { success: true, markdown, totalLines: lineStats.totalLines };
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      return { success: false, error: body.error ?? `Request failed with status ${res.status}` };
+    }
+
+    const body = (await res.json()) as { markdown: string };
+    return { success: true, markdown: body.markdown };
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : "Unknown error scanning repo",
+      error: err instanceof Error ? err.message : 'Unknown error fetching repo context',
     };
-  } finally {
-    if (tempDir) cleanupTemp(tempDir);
   }
 }

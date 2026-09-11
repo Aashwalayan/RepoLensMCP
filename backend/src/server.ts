@@ -1,11 +1,11 @@
 import 'dotenv/config';
-console.log('DATABASE_URL loaded:', process.env.DATABASE_URL ? 'yes, length ' + process.env.DATABASE_URL.length : 'MISSING');
 import express from 'express';
 import { Pool } from 'pg';
 import { createAuthMiddleware } from './auth.js';
 import { createPushRouter } from './pushRoute.js';
 import { createDownloadRouter } from './downloadRoute.js';
 import { createSignupRouter, createIssueKeyRouter } from './keysRoute.js';
+import { createContextRouter } from './contextRoute.js';
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -22,6 +22,7 @@ app.use(createDownloadRouter(pool)); // GET /download/:slug — slug itself is t
 // Scoped to '/api' so requireApiKey doesn't run for /download or /api/signup above.
 app.use('/api', requireApiKey, createIssueKeyRouter(pool)); // POST /api/keys — additional keys
 app.use('/api', requireApiKey, createPushRouter(pool));      // POST /api/push
+app.use('/api', requireApiKey, createContextRouter(pool));   // GET /api/context/:repoName, GET /api/repos
 
 const port = process.env.PORT ?? 3000;
 app.listen(port, () => {

@@ -5,7 +5,7 @@ import { saveContext } from './storage.js';
 
 // Rough plan-based ceilings — tune once you know real usage patterns.
 const MAX_MARKDOWN_BYTES: Record<string, number> = {
-  free: 500_000,     // ~500KB
+  free: 5_000_000,     // ~500KB
   pro: 5_000_000,    // ~5MB
 };
 

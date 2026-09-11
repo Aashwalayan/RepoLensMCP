@@ -19,11 +19,22 @@ export function generateRepoMap(options: GenerateOptions): string {
   const project = new Project({
     skipAddingFilesFromTsConfig: true,
     ...(options.tsConfigFilePath ? { tsConfigFilePath: options.tsConfigFilePath } : {}),
-    });
+  });
 
   for (const pattern of include) {
     project.addSourceFilesAtPaths(join(rootDir, pattern));
   }
+
+  // Strip anything that got swept in from node_modules — addSourceFilesAtPaths
+  // globs the filesystem directly and doesn't respect .gitignore or tsconfig excludes.
+  for (const file of project.getSourceFiles()) {
+    const path = file.getFilePath();
+    if (path.includes('node_modules') || path.includes('/dist/') || path.includes('\\dist\\')) {
+      project.removeSourceFile(file);
+    }
+  }
+
+  console.log(`[repolens] scanning ${project.getSourceFiles().length} files after exclusions`);
 
   const { files, edges } = buildGraph(project);
   const entryPoints = detectEntryPoints(project, rootDir, files, edges);
@@ -31,24 +42,11 @@ export function generateRepoMap(options: GenerateOptions): string {
   const graph: RepoGraph = { files, edges, entryPoints };
   const markdown = renderMarkdown(rootDir, graph);
 
+  console.log(`[repolens] generated markdown: ${markdown.length} chars, ${files.length} files, ${edges.length} edges`);
+
   if (outFile) {
     writeFileSync(outFile, markdown, 'utf-8');
   }
 
   return markdown;
 }
-
-// --- Example direct usage (e.g. from your CLI's `push`/`watch` command) ---
-//
-// import { generateRepoMap } from './index.js';
-//
-// const markdown = generateRepoMap({
-//   rootDir: process.cwd(),
-//   outFile: join(process.cwd(), 'repo-context.md'),
-// });
-//
-// await fetch('https://yourservice.com/api/push', {
-//   method: 'POST',
-//   headers: { 'Content-Type': 'application/json' },
-//   body: JSON.stringify({ markdown }),
-// });
