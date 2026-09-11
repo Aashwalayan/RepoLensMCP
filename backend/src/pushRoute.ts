@@ -12,7 +12,7 @@ const MAX_MARKDOWN_BYTES: Record<string, number> = {
 export function createPushRouter(pool: Pool): Router {
   const router = Router();
 
-  router.post('/api/push', async (req: AuthedRequest, res) => {
+  router.post('/push', async (req: AuthedRequest, res) => {
     const { repoName, markdown, fileCount, edgeCount } = req.body ?? {};
 
     if (!req.userId) {
