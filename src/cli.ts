@@ -56,6 +56,32 @@ function runWatch() {
   triggerPush();
 }
 
+async function runMcp() {
+  try {
+    // Dynamic imports here — these pull in @modelcontextprotocol/sdk, which
+    // push/watch users don't need, so keep it out of the eagerly-loaded path.
+    const { StdioServerTransport } = await import('@modelcontextprotocol/sdk/server/stdio.js');
+    const { createServer } = await import('./server.js');
+
+    const server = createServer();
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error('RepoLens MCP server running on stdio');
+  } catch (err) {
+    console.error('[repolens mcp] Fatal error during startup:', err);
+    process.exit(1);
+  }
+}
+
+process.on('uncaughtException', (err) => {
+  console.error('[repolens mcp] Uncaught exception:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('[repolens mcp] Unhandled rejection:', err);
+  process.exit(1);
+});
+
 switch (command) {
   case 'push':
     runPush();
@@ -63,7 +89,10 @@ switch (command) {
   case 'watch':
     runWatch();
     break;
+  case 'mcp':
+    runMcp();
+    break;
   default:
-    console.log('Usage: repolens <push|watch>');
+    console.log('Usage: repolens <push|watch|mcp>');
     process.exit(1);
 }
