@@ -14,11 +14,19 @@ export interface GenerateOptions {
 }
 
 export function generateRepoMap(options: GenerateOptions): string {
-  const { rootDir, include = ['**/*.{ts,tsx}'], outFile } = options;
+  const { rootDir, include = ['**/*.{ts,tsx,js,jsx}'], outFile } = options;
 
   const project = new Project({
     skipAddingFilesFromTsConfig: true,
     ...(options.tsConfigFilePath ? { tsConfigFilePath: options.tsConfigFilePath } : {}),
+    compilerOptions: {
+      // Most JS projects have no tsconfig.json at all, and even ones that do
+      // may not set allowJs — force it so .js/.jsx files actually get parsed
+      // instead of silently skipped. checkJs stays off: we only need the
+      // syntax tree (imports, functions, calls), not real type-checking.
+      allowJs: true,
+      checkJs: false,
+    },
   });
 
   for (const pattern of include) {

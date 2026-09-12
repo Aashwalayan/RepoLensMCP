@@ -1,3 +1,5 @@
+import { existsSync } from 'fs';
+import { join } from 'path';
 import { generateRepoMap } from './lib/index.js';
 import type { CliConfig } from './cliConfig.js';
 
@@ -7,10 +9,17 @@ export interface PushOutcome {
   error?: string;
 }
 
+interface PushResponse {
+  error?: string;
+  downloadUrl?: string;
+}
+
 export async function pushOnce(config: CliConfig): Promise<PushOutcome> {
+  const tsConfigPath = join(config.rootDir, 'tsconfig.json');
+
   const markdown = generateRepoMap({
     rootDir: config.rootDir,
-    tsConfigFilePath: `${config.rootDir}/tsconfig.json`,
+    ...(existsSync(tsConfigPath) ? { tsConfigFilePath: tsConfigPath } : {}),
   });
 
   const fileCount = (markdown.match(/^### `/gm) ?? []).length; // rough count from render.ts's output shape
@@ -28,11 +37,6 @@ export async function pushOnce(config: CliConfig): Promise<PushOutcome> {
         fileCount,
       }),
     });
-
-    interface PushResponse {
-      error?: string;
-      downloadUrl?: string;
-    }
 
     if (!res.ok) {
       const body = (await res.json().catch(() => ({}))) as PushResponse;
