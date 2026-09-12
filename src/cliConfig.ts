@@ -28,7 +28,7 @@ export function resolveConfig(rootDir: string = process.cwd()): CliConfig {
     process.exit(1);
   }
 
-  const apiUrl = process.env.REPOLENS_API_URL || 'http://localhost:3000';
+  const apiUrl = process.env.REPOLENS_API_URL || 'https://repolensmcp-production.up.railway.app';
 
   return {
     apiKey,

@@ -8,7 +8,7 @@ export interface GetRepoContextResult {
   error?: string;
 }
 
-const API_URL = process.env.REPOLENS_API_URL || 'https://api.yourservice.com'; // swap once deployed
+const API_URL = process.env.REPOLENS_API_URL || 'https://repolensmcp-production.up.railway.app';
 const API_KEY = process.env.REPOLENS_KEY;
 
 /**
