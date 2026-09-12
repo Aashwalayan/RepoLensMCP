@@ -46,6 +46,10 @@ export async function pushOnce(config: CliConfig): Promise<PushOutcome> {
     const body = (await res.json()) as PushResponse;
     return { ok: true, downloadUrl: `${config.apiUrl}${body.downloadUrl}` };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    const cause = err instanceof Error && 'cause' in err ? err.cause : undefined;
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error('[repolens push] Raw fetch error:', err);
+    if (cause) console.error('[repolens push] Cause:', cause);
+    return { ok: false, error: cause ? `${detail} (${String(cause)})` : detail };
   }
 }
