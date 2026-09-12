@@ -69,10 +69,13 @@ export async function getLatestContextByRepoId(pool: Pool, repoId: string): Prom
   return result.rows[0]?.markdown ?? null;
 }
 
-/** Latest context by slug — used by the public download route. */
-export async function getLatestContextBySlug(pool: Pool, slug: string): Promise<string | null> {
+/** Latest context by slug — used by the public download route. Returns the repo's real name too, for the download filename. */
+export async function getLatestContextBySlug(
+  pool: Pool,
+  slug: string
+): Promise<{ markdown: string; repoName: string } | null> {
   const result = await pool.query(
-    `SELECT c.markdown
+    `SELECT c.markdown, r.name AS repo_name
      FROM contexts c
      JOIN repos r ON r.id = c.repo_id
      WHERE r.slug = $1
@@ -80,7 +83,8 @@ export async function getLatestContextBySlug(pool: Pool, slug: string): Promise<
      LIMIT 1`,
     [slug]
   );
-  return result.rows[0]?.markdown ?? null;
+  if (result.rows.length === 0) return null;
+  return { markdown: result.rows[0].markdown, repoName: result.rows[0].repo_name };
 }
 
 /** All repos for a user, with their latest push time — for an MCP "list repos" tool or dashboard. */
